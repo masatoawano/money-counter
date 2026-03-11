@@ -3,11 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <title>Money Counter</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+body{
+font-family:sans-serif;
+text-align:center;
+background:#fafafa
+}
+
+button{
+font-size:20px;
+margin:10px;
+padding:15px
+}
+
+.total{
+font-size:40px;
+margin:20px
+}
+</style>
+
 </head>
 
 <body>
 
 <h1>みんなの金額メーター</h1>
+
+<div class="total" id="total">0</div>
+
+<button onclick="add(100)">+100</button>
+<button onclick="add(500)">+500</button>
+<button onclick="add(1000)">+1000</button>
+
+<script>
+
+const SUPABASE_URL = "https://mdkpnbpuytnnjlovffqo.supabase.co"
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ka3BuYnB1eXRubmpsb3ZmZnFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMzExNTIsImV4cCI6MjA4ODgwNzE1Mn0.UV_ako1fE_BzSlLzDwxtX9b7Sl5t8gRLS48kCabg3Cw"
+
+const supabase = supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
+
+async function add(amount){
+
+await supabase.from('money_events').insert({
+room:'main',
+amount:amount,
+type:'add'
+})
+
+}
+
+async function load(){
+
+let {data}=await supabase
+.from('money_events')
+.select('*')
+
+let total=0
+
+data.forEach(e=>{
+total+=e.amount
+})
+
+document.getElementById("total").innerText=total
+
+}
+
+setInterval(load,1000)
+
+</script>
 
 </body>
 </html>
