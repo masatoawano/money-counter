@@ -1,78 +1,102 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Money Counter</title>
+  <meta charset="UTF-8">
+  <title>Money Counter</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<style>
-body{
-font-family:sans-serif;
-text-align:center;
-background:#fafafa
-}
+  <style>
+    body{
+      font-family:sans-serif;
+      text-align:center;
+      background:#fafafa;
+      padding:24px;
+    }
 
-button{
-font-size:20px;
-margin:10px;
-padding:15px
-}
+    button{
+      font-size:20px;
+      margin:10px;
+      padding:15px;
+    }
 
-.total{
-font-size:40px;
-margin:20px
-}
-</style>
+    .total{
+      font-size:40px;
+      margin:20px;
+    }
 
+    .error{
+      color:red;
+      margin-top:16px;
+      white-space:pre-wrap;
+    }
+  </style>
 </head>
 
 <body>
 
-<h1>みんなの金額メーター</h1>
+  <h1>みんなの金額メーター</h1>
 
-<div class="total" id="total">0</div>
+  <div class="total" id="total">0</div>
 
-<button onclick="add(100)">+100</button>
-<button onclick="add(500)">+500</button>
-<button onclick="add(1000)">+1000</button>
+  <button onclick="add(100)">+100</button>
+  <button onclick="add(500)">+500</button>
+  <button onclick="add(1000)">+1000</button>
 
-<script>
+  <div id="error" class="error"></div>
 
-const SUPABASE_URL = "https://mdkpnbpuytnnjlovffqo.supabase.co"
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ka3BuYnB1eXRubmpsb3ZmZnFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMzExNTIsImV4cCI6MjA4ODgwNzE1Mn0.UV_ako1fE_BzSlLzDwxtX9b7Sl5t8gRLS48kCabg3Cw"
+  <script>
+    const SUPABASE_URL = "https://mdkpnbpuytnnjlovffqo.supabase.co";
+    const SUPABASE_KEY = "YOUR_ANON_KEY";
+    const ROOM = "main";
 
-const supabase = supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-async function add(amount){
+    async function add(amount){
+      document.getElementById("error").innerText = "";
 
-await supabase.from('money_events').insert({
-room:'main',
-amount:amount,
-type:'add'
-})
+      const { error } = await client.from("money_events").insert({
+        room: ROOM,
+        amount: amount,
+        type: "add"
+      });
 
-}
+      if (error) {
+        document.getElementById("error").innerText =
+          "insert error: " + JSON.stringify(error, null, 2);
+        return;
+      }
 
-async function load(){
+      await load();
+    }
 
-let {data}=await supabase
-.from('money_events')
-.select('*')
+    async function load(){
+      document.getElementById("error").innerText = "";
 
-let total=0
+      const { data, error } = await client
+        .from("money_events")
+        .select("*")
+        .eq("room", ROOM);
 
-data.forEach(e=>{
-total+=e.amount
-})
+      if (error) {
+        document.getElementById("error").innerText =
+          "select error: " + JSON.stringify(error, null, 2);
+        return;
+      }
 
-document.getElementById("total").innerText=total
+      let total = 0;
 
-}
+      data.forEach(e => {
+        if (e.type === "add") total += Number(e.amount || 0);
+        if (e.type === "sub") total -= Number(e.amount || 0);
+      });
 
-setInterval(load,1000)
+      document.getElementById("total").innerText = total;
+    }
 
-</script>
+    load();
+    setInterval(load, 1000);
+  </script>
 
 </body>
 </html>
