@@ -3,75 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <title>Money Counter</title>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
-    body{
-      font-family:sans-serif;
-      text-align:center;
-      background:#fafafa;
-      padding:24px;
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #fafafa;
+      padding: 24px;
     }
-
-    button{
-      font-size:20px;
-      margin:10px;
-      padding:15px;
+    button {
+      font-size: 20px;
+      margin: 10px;
+      padding: 15px 20px;
     }
-
-    .total{
-      font-size:40px;
-      margin:20px;
+    .total {
+      font-size: 40px;
+      margin: 20px;
     }
-
-    .error{
-      color:red;
-      margin-top:16px;
-      white-space:pre-wrap;
+    .error {
+      color: red;
+      margin-top: 16px;
+      white-space: pre-wrap;
+      font-size: 14px;
+    }
+    .ok {
+      color: green;
+      margin-top: 12px;
+      font-size: 14px;
     }
   </style>
 </head>
-
 <body>
-
   <h1>みんなの金額メーター</h1>
-
   <div class="total" id="total">0</div>
 
   <button onclick="add(100)">+100</button>
   <button onclick="add(500)">+500</button>
   <button onclick="add(1000)">+1000</button>
 
+  <div id="status" class="ok"></div>
   <div id="error" class="error"></div>
 
   <script>
     const SUPABASE_URL = "https://mdkpnbpuytnnjlovffqo.supabase.co";
-    const SUPABASE_KEY = "YOUR_ANON_KEY";
+    const SUPABASE_KEY = "ここに新しいanon keyを入れる";
     const ROOM = "main";
 
-    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const statusEl = document.getElementById("status");
+    const errorEl = document.getElementById("error");
+    const totalEl = document.getElementById("total");
 
-    async function add(amount){
-      document.getElementById("error").innerText = "";
+    function setStatus(text) {
+      statusEl.innerText = text || "";
+    }
 
-      const { error } = await client.from("money_events").insert({
+    function setError(text) {
+      errorEl.innerText = text || "";
+    }
+
+    let client;
+    try {
+      client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      setStatus("Supabase接続初期化OK");
+    } catch (e) {
+      setError("createClient error: " + e.message);
+    }
+
+    async function add(amount) {
+      setError("");
+      setStatus("追加中...");
+
+      const { data, error } = await client.from("money_events").insert({
         room: ROOM,
         amount: amount,
         type: "add"
-      });
+      }).select();
 
       if (error) {
-        document.getElementById("error").innerText =
-          "insert error: " + JSON.stringify(error, null, 2);
+        setError("insert error: " + JSON.stringify(error, null, 2));
+        setStatus("");
         return;
       }
 
+      setStatus("追加成功: " + JSON.stringify(data));
       await load();
     }
 
-    async function load(){
-      document.getElementById("error").innerText = "";
+    async function load() {
+      setError("");
+      setStatus("読込中...");
 
       const { data, error } = await client
         .from("money_events")
@@ -79,24 +99,23 @@
         .eq("room", ROOM);
 
       if (error) {
-        document.getElementById("error").innerText =
-          "select error: " + JSON.stringify(error, null, 2);
+        setError("select error: " + JSON.stringify(error, null, 2));
+        setStatus("");
         return;
       }
 
       let total = 0;
-
       data.forEach(e => {
         if (e.type === "add") total += Number(e.amount || 0);
         if (e.type === "sub") total -= Number(e.amount || 0);
       });
 
-      document.getElementById("total").innerText = total;
+      totalEl.innerText = total;
+      setStatus("読込成功: " + data.length + "件");
     }
 
     load();
     setInterval(load, 1000);
   </script>
-
 </body>
 </html>
